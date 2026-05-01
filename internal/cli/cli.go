@@ -26,7 +26,6 @@ type startOptions struct {
 	tag         string
 }
 
-// Run executes the CLI command and returns the process exit code.
 func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if len(args) == 0 {
 		printHelp(stdout)
