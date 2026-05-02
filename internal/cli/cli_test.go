@@ -2,8 +2,11 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/alexander-addd/momentum/internal/tracking"
 )
 
 func TestRunSuccessfulCommands(t *testing.T) {
@@ -64,7 +67,7 @@ func TestRunSuccessfulCommands(t *testing.T) {
 			var stdout bytes.Buffer
 			var stderr bytes.Buffer
 
-			gotCode := Run(tt.args, &stdout, &stderr)
+			gotCode := Run(context.Background(), fakeTracker{}, tt.args, &stdout, &stderr)
 
 			if gotCode != 0 {
 				t.Fatalf("Run() exit code = %d, want 0", gotCode)
@@ -185,7 +188,7 @@ func assertRunError(t *testing.T, args []string, wantErrOutput string) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	gotCode := Run(args, &stdout, &stderr)
+	gotCode := Run(context.Background(), fakeTracker{}, args, &stdout, &stderr)
 
 	if gotCode == 0 {
 		t.Fatalf("Run() exit code = 0, want non-zero")
@@ -201,4 +204,26 @@ func assertRunError(t *testing.T, args []string, wantErrOutput string) {
 	if !strings.Contains(gotStderr, helpText) {
 		t.Fatalf("stderr = %q, want help text", gotStderr)
 	}
+}
+
+type fakeTracker struct{}
+
+func (fakeTracker) Start(context.Context, tracking.StartInput) (tracking.Entry, error) {
+	return tracking.Entry{}, nil
+}
+
+func (fakeTracker) Stop(context.Context) (tracking.Entry, error) {
+	return tracking.Entry{}, nil
+}
+
+func (fakeTracker) Status(context.Context) (tracking.Status, error) {
+	return tracking.Status{}, nil
+}
+
+func (fakeTracker) Today(context.Context) ([]tracking.Entry, error) {
+	return nil, nil
+}
+
+func (fakeTracker) Log(context.Context, int) ([]tracking.Entry, error) {
+	return nil, nil
 }
