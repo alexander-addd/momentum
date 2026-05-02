@@ -36,22 +36,22 @@ func NewService(clock Clock, store *storage.Queries) *Service {
 	return &Service{clock: clock, store: store}
 }
 
-func (t *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
+func (s *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
 	return Entry{}, nil
 }
 
-func (t *Service) Stop(ctx context.Context) (Entry, error) {
+func (s *Service) Stop(ctx context.Context) (Entry, error) {
 	return Entry{}, nil
 }
 
-func (t *Service) Status(ctx context.Context) (Status, error) {
+func (s *Service) Status(ctx context.Context) (Status, error) {
 	return Status{}, nil
 }
 
-func (t *Service) Today(ctx context.Context) ([]Entry, error) {
+func (s *Service) Today(ctx context.Context) ([]Entry, error) {
 	return []Entry{}, nil
 }
 
-func (t *Service) Log(ctx context.Context, limit int) ([]Entry, error) {
+func (s *Service) Log(ctx context.Context, limit int) ([]Entry, error) {
 	return []Entry{}, nil
 }
