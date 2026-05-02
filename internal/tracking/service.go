@@ -3,10 +3,21 @@ package tracking
 import (
 	"context"
 	"time"
+
+	"github.com/alexander-addd/momentum/internal/storage"
 )
 
 type Service struct {
 	clock Clock
+	store *storage.Queries // maybe repository layer later
+}
+
+type Tracker interface {
+	Start(context.Context, StartInput) (Entry, error)
+	Stop(context.Context) (Entry, error)
+	Status(context.Context) (Status, error)
+	Today(context.Context) ([]Entry, error)
+	Log(context.Context, int) ([]Entry, error)
 }
 
 type StartInput struct {
@@ -21,8 +32,8 @@ type Status struct {
 	Elapsed time.Duration
 }
 
-func NewService(clock Clock) *Service {
-	return &Service{clock: clock}
+func NewService(clock Clock, store *storage.Queries) *Service {
+	return &Service{clock: clock, store: store}
 }
 
 func (t *Service) Start(ctx context.Context, input StartInput) (Entry, error)

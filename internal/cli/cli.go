@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/alexander-addd/momentum/internal/tracking"
 )
 
 const (
@@ -26,7 +29,7 @@ type startOptions struct {
 	tag         string
 }
 
-func Run(args []string, stdout io.Writer, stderr io.Writer) int {
+func Run(ctx context.Context, service tracking.Tracker, args []string, stdout io.Writer, stderr io.Writer) int {
 	if len(args) == 0 {
 		printHelp(stdout)
 		return exitOK
