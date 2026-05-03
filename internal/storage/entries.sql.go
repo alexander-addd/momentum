@@ -34,10 +34,10 @@ type CreateEntryParams struct {
 	ID          string
 	Description string
 	ProjectID   sql.NullString
-	StartedAt   string
-	StoppedAt   sql.NullString
-	CreatedAt   string
-	UpdatedAt   string
+	StartedAt   int64
+	StoppedAt   sql.NullInt64
+	CreatedAt   int64
+	UpdatedAt   int64
 }
 
 func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) error {
@@ -121,8 +121,8 @@ ORDER BY started_at ASC, created_at ASC
 `
 
 type ListEntriesByStartRangeParams struct {
-	StartedAtFrom string
-	StartedAtTo   string
+	StartedAtFrom int64
+	StartedAtTo   int64
 }
 
 func (q *Queries) ListEntriesByStartRange(ctx context.Context, arg ListEntriesByStartRangeParams) ([]Entry, error) {
@@ -249,8 +249,8 @@ RETURNING
 `
 
 type StopActiveEntryParams struct {
-	StoppedAt sql.NullString
-	UpdatedAt string
+	StoppedAt sql.NullInt64
+	UpdatedAt int64
 }
 
 func (q *Queries) StopActiveEntry(ctx context.Context, arg StopActiveEntryParams) (Entry, error) {

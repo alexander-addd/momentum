@@ -2,9 +2,14 @@ package tracking
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alexander-addd/momentum/internal/storage"
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -23,7 +28,7 @@ type Tracker interface {
 type StartInput struct {
 	Description string
 	Project     string
-	Tags        []string
+	Tags        []string // ignoring for now
 }
 
 type Status struct {
@@ -32,12 +37,61 @@ type Status struct {
 	Elapsed time.Duration
 }
 
+type resolvedProject struct {
+	id   sql.NullString
+	name string
+}
+
 func NewService(clock Clock, store *storage.Queries) *Service {
 	return &Service{clock: clock, store: store}
 }
 
 func (s *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
-	return Entry{}, nil
+	if strings.TrimSpace(input.Description) == "" {
+		return Entry{}, ErrEmptyDescription
+	}
+
+	_, err := s.store.GetActiveEntry(ctx)
+	if err == nil {
+		return Entry{}, ErrActiveEntryExists
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return Entry{}, fmt.Errorf("get active entry: %w", err)
+	}
+
+	now := s.clock.Now()
+
+	project, err := s.resolveProjectID(ctx, input.Project, now)
+	if err != nil {
+		return Entry{}, fmt.Errorf("resolve project id: %w", err)
+	}
+
+	entryID := uuid.New()
+	entryPayload := storage.CreateEntryParams{
+		ID:          entryID.String(),
+		Description: input.Description,
+		ProjectID:   project.id,
+		StartedAt:   now.Unix(),
+		CreatedAt:   now.Unix(),
+		UpdatedAt:   now.Unix(),
+	}
+
+	err = s.store.CreateEntry(ctx, entryPayload)
+	if err != nil {
+		return Entry{}, fmt.Errorf("create entry: %w", err)
+	}
+
+	entry := Entry{
+		ID:          entryID,
+		Description: input.Description,
+		Project:     project.name,
+		Tags:        []string{}, // ignoring for now
+		StartedAt:   now,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	return entry, nil
 }
 
 func (s *Service) Stop(ctx context.Context) (Entry, error) {
@@ -54,4 +108,40 @@ func (s *Service) Today(ctx context.Context) ([]Entry, error) {
 
 func (s *Service) Log(ctx context.Context, limit int) ([]Entry, error) {
 	return []Entry{}, nil
+}
+
+func (s *Service) resolveProjectID(ctx context.Context, name string, now time.Time) (resolvedProject, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return resolvedProject{id: sql.NullString{}, name: ""}, nil
+	}
+
+	project, err := s.store.GetProjectByName(ctx, name)
+	switch {
+	case err == nil:
+		return resolvedProject{
+			id:   sql.NullString{String: project.ID, Valid: true},
+			name: project.Name,
+		}, nil
+
+	case errors.Is(err, sql.ErrNoRows):
+		id := uuid.New()
+
+		err := s.store.CreateProject(ctx, storage.CreateProjectParams{
+			ID:        id.String(),
+			Name:      name,
+			CreatedAt: now.Unix(),
+			UpdatedAt: now.Unix(),
+		})
+		if err != nil {
+			return resolvedProject{id: sql.NullString{}, name: ""}, fmt.Errorf("create project: %w", err)
+		}
+
+		return resolvedProject{
+			id:   sql.NullString{String: id.String(), Valid: true},
+			name: name}, nil
+
+	default:
+		return resolvedProject{id: sql.NullString{}, name: ""}, fmt.Errorf("get project by name: %w", err)
+	}
 }

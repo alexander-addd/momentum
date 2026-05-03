@@ -26,8 +26,8 @@ INSERT INTO tags (
 type CreateTagParams struct {
 	ID        string
 	Name      string
-	CreatedAt string
-	UpdatedAt string
+	CreatedAt int64
+	UpdatedAt int64
 }
 
 func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) error {

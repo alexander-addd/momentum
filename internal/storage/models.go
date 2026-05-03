@@ -12,10 +12,10 @@ type Entry struct {
 	ID          string
 	Description string
 	ProjectID   sql.NullString
-	StartedAt   string
-	StoppedAt   sql.NullString
-	CreatedAt   string
-	UpdatedAt   string
+	StartedAt   int64
+	StoppedAt   sql.NullInt64
+	CreatedAt   int64
+	UpdatedAt   int64
 }
 
 type EntryTag struct {
@@ -27,13 +27,13 @@ type EntryTag struct {
 type Project struct {
 	ID        string
 	Name      string
-	CreatedAt string
-	UpdatedAt string
+	CreatedAt int64
+	UpdatedAt int64
 }
 
 type Tag struct {
 	ID        string
 	Name      string
-	CreatedAt string
-	UpdatedAt string
+	CreatedAt int64
+	UpdatedAt int64
 }

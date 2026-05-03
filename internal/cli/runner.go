@@ -23,12 +23,12 @@ func (r runner) runStart(ctx context.Context, args []string) int {
 
 	entry, err := r.service.Start(ctx, input)
 	if err != nil {
-		return serviceError(r.stderr, "error from service")
+		return serviceError(r.stderr, "couldn't start timer: %v", err)
 	}
 
 	fmt.Fprintln(r.stdout, entry)
 
-	fmt.Fprintf(r.stdout, "Started project %s\n", getTitleIfEmpty(input.Project))
+	fmt.Fprintf(r.stdout, "New entry started: %s, project: %s\n", entry.Description, getTitleIfEmpty(entry.Project))
 	return exitOK
 }
 

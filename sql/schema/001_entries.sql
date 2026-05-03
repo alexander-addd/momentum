@@ -2,16 +2,16 @@
 CREATE TABLE projects (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL CHECK (length(trim(name)) > 0),
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
     UNIQUE (name)
 );
 
 CREATE TABLE tags (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL CHECK (length(trim(name)) > 0),
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
     UNIQUE (name)
 );
 
@@ -19,10 +19,10 @@ CREATE TABLE entries (
     id TEXT PRIMARY KEY,
     description TEXT NOT NULL CHECK (length(trim(description)) > 0),
     project_id TEXT,
-    started_at TEXT NOT NULL,
-    stopped_at TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    stopped_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
     CHECK (stopped_at IS NULL OR stopped_at >= started_at),
     FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE SET NULL
 );

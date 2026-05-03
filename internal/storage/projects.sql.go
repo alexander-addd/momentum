@@ -26,8 +26,8 @@ INSERT INTO projects (
 type CreateProjectParams struct {
 	ID        string
 	Name      string
-	CreatedAt string
-	UpdatedAt string
+	CreatedAt int64
+	UpdatedAt int64
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) error {
