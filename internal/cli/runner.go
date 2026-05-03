@@ -32,6 +32,18 @@ func (r runner) runStart(ctx context.Context, args []string) int {
 	return exitOK
 }
 
+func (r runner) stop(ctx context.Context) int {
+	status, err := r.service.Stop(ctx)
+	if err != nil {
+		return serviceError(r.stderr, "couldn't stop timer: %v", err)
+	}
+
+	fmt.Fprintf(r.stdout, "Entry %q stopped\n", status.Entry.Description)
+	fmt.Fprintf(r.stdout, "Time elapsed: %s\n", status.Elapsed)
+
+	return exitOK
+}
+
 func parseStart(args []string) (tracking.StartInput, error) {
 	options := tracking.StartInput{
 		Project: "",

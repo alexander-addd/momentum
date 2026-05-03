@@ -19,7 +19,7 @@ type Service struct {
 
 type Tracker interface {
 	Start(context.Context, StartInput) (Entry, error)
-	Stop(context.Context) (Entry, error)
+	Stop(context.Context) (Status, error)
 	Status(context.Context) (Status, error)
 	Today(context.Context) ([]Entry, error)
 	Log(context.Context, int) ([]Entry, error)
@@ -66,9 +66,9 @@ func (s *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
 		return Entry{}, fmt.Errorf("resolve project id: %w", err)
 	}
 
-	entryID := uuid.New()
+	entryID := uuid.New().String()
 	entryPayload := storage.CreateEntryParams{
-		ID:          entryID.String(),
+		ID:          entryID,
 		Description: input.Description,
 		ProjectID:   project.id,
 		StartedAt:   now.Unix(),
@@ -81,21 +81,59 @@ func (s *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
 		return Entry{}, fmt.Errorf("create entry: %w", err)
 	}
 
-	entry := Entry{
-		ID:          entryID,
-		Description: input.Description,
-		Project:     project.name,
-		Tags:        []string{}, // ignoring for now
-		StartedAt:   now,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+	newEntry, err := s.store.GetEntryByID(ctx, entryID)
+	if err != nil {
+		return Entry{}, fmt.Errorf("get entry by id: %w", err)
 	}
 
-	return entry, nil
+	mappedEntry, err := toEntryMapper(newEntry)
+	if err != nil {
+		return Entry{}, fmt.Errorf("map to entry: %w", err)
+	}
+
+	return mappedEntry, nil
 }
 
-func (s *Service) Stop(ctx context.Context) (Entry, error) {
-	return Entry{}, nil
+func (s *Service) Stop(ctx context.Context) (Status, error) {
+	entry, err := s.store.GetActiveEntry(ctx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Status{}, ErrNoActiveEntry
+	}
+	if err != nil {
+		return Status{}, fmt.Errorf("get active entry: %w", err)
+	}
+
+	now := s.clock.Now()
+	entryStoppedAt := sql.NullInt64{Int64: now.Unix(), Valid: true}
+	entryUpdatedAt := now.Unix()
+
+	rowsAffected, err := s.store.StopActiveEntry(ctx, storage.StopActiveEntryParams{
+		ID:        entry.ID,
+		StoppedAt: entryStoppedAt,
+		UpdatedAt: entryUpdatedAt,
+	})
+	if err != nil {
+		return Status{}, fmt.Errorf("stop active entry: %w", err)
+	}
+	if rowsAffected == 0 {
+		return Status{}, ErrNoActiveEntry
+	}
+
+	entry.StoppedAt = entryStoppedAt
+	entry.UpdatedAt = entryUpdatedAt
+
+	mappedEntry, err := toEntryMapper(entry)
+	if err != nil {
+		return Status{}, fmt.Errorf("map to entry: %w", err)
+	}
+
+	status := Status{
+		Entry:   mappedEntry,
+		Active:  mappedEntry.Active(),
+		Elapsed: mappedEntry.Duration(now),
+	}
+
+	return status, nil
 }
 
 func (s *Service) Status(ctx context.Context) (Status, error) {

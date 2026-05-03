@@ -43,6 +43,21 @@ LEFT JOIN projects p ON p.id = e.project_id
 WHERE stopped_at IS NULL
 LIMIT 1;
 
+-- name: GetEntryByID :one
+SELECT
+    e.id,
+    e.description,
+    e.project_id,
+    p.name AS project_name,
+    e.started_at,
+    e.stopped_at,
+    e.created_at,
+    e.updated_at
+FROM entries e
+LEFT JOIN projects p ON p.id = e.project_id
+WHERE e.id = sqlc.arg(id)
+LIMIT 1;
+
 -- name: StopActiveEntry :execrows
 UPDATE entries
 SET

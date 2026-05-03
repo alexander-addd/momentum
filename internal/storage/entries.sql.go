@@ -119,7 +119,50 @@ func (q *Queries) GetActiveEntry(ctx context.Context) (GetActiveEntryRow, error)
 	return i, err
 }
 
-const stopActiveEntry = `-- name: StopActiveEntry :exec
+const getEntryByID = `-- name: GetEntryByID :one
+SELECT
+    e.id,
+    e.description,
+    e.project_id,
+    p.name AS project_name,
+    e.started_at,
+    e.stopped_at,
+    e.created_at,
+    e.updated_at
+FROM entries e
+LEFT JOIN projects p ON p.id = e.project_id
+WHERE e.id = ?1
+LIMIT 1
+`
+
+type GetEntryByIDRow struct {
+	ID          string
+	Description string
+	ProjectID   sql.NullString
+	ProjectName sql.NullString
+	StartedAt   int64
+	StoppedAt   sql.NullInt64
+	CreatedAt   int64
+	UpdatedAt   int64
+}
+
+func (q *Queries) GetEntryByID(ctx context.Context, id string) (GetEntryByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getEntryByID, id)
+	var i GetEntryByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Description,
+		&i.ProjectID,
+		&i.ProjectName,
+		&i.StartedAt,
+		&i.StoppedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const stopActiveEntry = `-- name: StopActiveEntry :execrows
 UPDATE entries
 SET
     stopped_at = ?1,
@@ -134,7 +177,10 @@ type StopActiveEntryParams struct {
 	ID        string
 }
 
-func (q *Queries) StopActiveEntry(ctx context.Context, arg StopActiveEntryParams) error {
-	_, err := q.db.ExecContext(ctx, stopActiveEntry, arg.StoppedAt, arg.UpdatedAt, arg.ID)
-	return err
+func (q *Queries) StopActiveEntry(ctx context.Context, arg StopActiveEntryParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, stopActiveEntry, arg.StoppedAt, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
