@@ -37,11 +37,6 @@ type Status struct {
 	Elapsed time.Duration
 }
 
-type resolvedProject struct {
-	id   sql.NullString
-	name string
-}
-
 func NewService(clock Clock, store *storage.Queries) *Service {
 	return &Service{clock: clock, store: store}
 }
@@ -61,7 +56,7 @@ func (s *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
 
 	now := s.clock.Now()
 
-	project, err := s.resolveProjectID(ctx, input.Project, now)
+	projectID, err := s.resolveProjectID(ctx, input.Project, now)
 	if err != nil {
 		return Entry{}, fmt.Errorf("resolve project id: %w", err)
 	}
@@ -70,7 +65,7 @@ func (s *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
 	entryPayload := storage.CreateEntryParams{
 		ID:          entryID,
 		Description: input.Description,
-		ProjectID:   project.id,
+		ProjectID:   projectID,
 		StartedAt:   now.Unix(),
 		CreatedAt:   now.Unix(),
 		UpdatedAt:   now.Unix(),
@@ -148,19 +143,16 @@ func (s *Service) Log(ctx context.Context, limit int) ([]Entry, error) {
 	return []Entry{}, nil
 }
 
-func (s *Service) resolveProjectID(ctx context.Context, name string, now time.Time) (resolvedProject, error) {
+func (s *Service) resolveProjectID(ctx context.Context, name string, now time.Time) (sql.NullString, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return resolvedProject{id: sql.NullString{}, name: ""}, nil
+		return sql.NullString{}, nil
 	}
 
 	project, err := s.store.GetProjectByName(ctx, name)
 	switch {
 	case err == nil:
-		return resolvedProject{
-			id:   sql.NullString{String: project.ID, Valid: true},
-			name: project.Name,
-		}, nil
+		return sql.NullString{String: project.ID, Valid: true}, nil
 
 	case errors.Is(err, sql.ErrNoRows):
 		id := uuid.New()
@@ -172,14 +164,12 @@ func (s *Service) resolveProjectID(ctx context.Context, name string, now time.Ti
 			UpdatedAt: now.Unix(),
 		})
 		if err != nil {
-			return resolvedProject{id: sql.NullString{}, name: ""}, fmt.Errorf("create project: %w", err)
+			return sql.NullString{}, fmt.Errorf("create project: %w", err)
 		}
 
-		return resolvedProject{
-			id:   sql.NullString{String: id.String(), Valid: true},
-			name: name}, nil
+		return sql.NullString{String: id.String(), Valid: true}, nil
 
 	default:
-		return resolvedProject{id: sql.NullString{}, name: ""}, fmt.Errorf("get project by name: %w", err)
+		return sql.NullString{}, fmt.Errorf("get project by name: %w", err)
 	}
 }
