@@ -41,11 +41,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) er
 }
 
 const getProjectByName = `-- name: GetProjectByName :one
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT id, name, created_at, updated_at
 FROM projects
 WHERE name = ?1
 `
@@ -63,11 +59,7 @@ func (q *Queries) GetProjectByName(ctx context.Context, name string) (Project, e
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT id, name, created_at, updated_at
 FROM projects
 ORDER BY name ASC
 `

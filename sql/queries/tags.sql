@@ -1,4 +1,3 @@
-
 -- name: CreateTag :exec
 INSERT INTO tags (
     id,
@@ -13,19 +12,11 @@ INSERT INTO tags (
 );
 
 -- name: GetTagByName :one
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT *
 FROM tags
 WHERE name = sqlc.arg(name);
 
 -- name: ListTags :many
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT *
 FROM tags
 ORDER BY name ASC;

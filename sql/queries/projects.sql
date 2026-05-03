@@ -12,19 +12,11 @@ INSERT INTO projects (
 );
 
 -- name: GetProjectByName :one
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT *
 FROM projects
 WHERE name = sqlc.arg(name);
 
 -- name: ListProjects :many
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT *
 FROM projects
 ORDER BY name ASC;

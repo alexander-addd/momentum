@@ -41,11 +41,7 @@ func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) error {
 }
 
 const getTagByName = `-- name: GetTagByName :one
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT id, name, created_at, updated_at
 FROM tags
 WHERE name = ?1
 `
@@ -63,11 +59,7 @@ func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
 }
 
 const listTags = `-- name: ListTags :many
-SELECT
-    id,
-    name,
-    created_at,
-    updated_at
+SELECT id, name, created_at, updated_at
 FROM tags
 ORDER BY name ASC
 `

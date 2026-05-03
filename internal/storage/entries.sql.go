@@ -78,25 +78,39 @@ func (q *Queries) CreateEntryTag(ctx context.Context, arg CreateEntryTagParams) 
 
 const getActiveEntry = `-- name: GetActiveEntry :one
 SELECT
-    id,
-    description,
-    project_id,
-    started_at,
-    stopped_at,
-    created_at,
-    updated_at
-FROM entries
+    e.id,
+    e.description,
+    e.project_id,
+    p.name AS project_name,
+    e.started_at,
+    e.stopped_at,
+    e.created_at,
+    e.updated_at
+FROM entries e
+LEFT JOIN projects p ON p.id = e.project_id
 WHERE stopped_at IS NULL
 LIMIT 1
 `
 
-func (q *Queries) GetActiveEntry(ctx context.Context) (Entry, error) {
+type GetActiveEntryRow struct {
+	ID          string
+	Description string
+	ProjectID   sql.NullString
+	ProjectName sql.NullString
+	StartedAt   int64
+	StoppedAt   sql.NullInt64
+	CreatedAt   int64
+	UpdatedAt   int64
+}
+
+func (q *Queries) GetActiveEntry(ctx context.Context) (GetActiveEntryRow, error) {
 	row := q.db.QueryRowContext(ctx, getActiveEntry)
-	var i Entry
+	var i GetActiveEntryRow
 	err := row.Scan(
 		&i.ID,
 		&i.Description,
 		&i.ProjectID,
+		&i.ProjectName,
 		&i.StartedAt,
 		&i.StoppedAt,
 		&i.CreatedAt,
@@ -105,165 +119,22 @@ func (q *Queries) GetActiveEntry(ctx context.Context) (Entry, error) {
 	return i, err
 }
 
-const listEntriesByStartRange = `-- name: ListEntriesByStartRange :many
-SELECT
-    id,
-    description,
-    project_id,
-    started_at,
-    stopped_at,
-    created_at,
-    updated_at
-FROM entries
-WHERE started_at >= ?1
-    AND started_at < ?2
-ORDER BY started_at ASC, created_at ASC
-`
-
-type ListEntriesByStartRangeParams struct {
-	StartedAtFrom int64
-	StartedAtTo   int64
-}
-
-func (q *Queries) ListEntriesByStartRange(ctx context.Context, arg ListEntriesByStartRangeParams) ([]Entry, error) {
-	rows, err := q.db.QueryContext(ctx, listEntriesByStartRange, arg.StartedAtFrom, arg.StartedAtTo)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Entry{}
-	for rows.Next() {
-		var i Entry
-		if err := rows.Scan(
-			&i.ID,
-			&i.Description,
-			&i.ProjectID,
-			&i.StartedAt,
-			&i.StoppedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listRecentEntries = `-- name: ListRecentEntries :many
-SELECT
-    id,
-    description,
-    project_id,
-    started_at,
-    stopped_at,
-    created_at,
-    updated_at
-FROM entries
-ORDER BY started_at DESC, created_at DESC
-LIMIT ?1
-`
-
-func (q *Queries) ListRecentEntries(ctx context.Context, limit int64) ([]Entry, error) {
-	rows, err := q.db.QueryContext(ctx, listRecentEntries, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Entry{}
-	for rows.Next() {
-		var i Entry
-		if err := rows.Scan(
-			&i.ID,
-			&i.Description,
-			&i.ProjectID,
-			&i.StartedAt,
-			&i.StoppedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listTagsForEntry = `-- name: ListTagsForEntry :many
-SELECT tags.name
-FROM entry_tags
-JOIN tags ON tags.id = entry_tags.tag_id
-WHERE entry_tags.entry_id = ?1
-ORDER BY entry_tags.position ASC
-`
-
-func (q *Queries) ListTagsForEntry(ctx context.Context, entryID string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listTagsForEntry, entryID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
-		}
-		items = append(items, name)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const stopActiveEntry = `-- name: StopActiveEntry :one
+const stopActiveEntry = `-- name: StopActiveEntry :exec
 UPDATE entries
 SET
     stopped_at = ?1,
     updated_at = ?2
 WHERE stopped_at IS NULL
-RETURNING
-    id,
-    description,
-    project_id,
-    started_at,
-    stopped_at,
-    created_at,
-    updated_at
+    AND id = ?3
 `
 
 type StopActiveEntryParams struct {
 	StoppedAt sql.NullInt64
 	UpdatedAt int64
+	ID        string
 }
 
-func (q *Queries) StopActiveEntry(ctx context.Context, arg StopActiveEntryParams) (Entry, error) {
-	row := q.db.QueryRowContext(ctx, stopActiveEntry, arg.StoppedAt, arg.UpdatedAt)
-	var i Entry
-	err := row.Scan(
-		&i.ID,
-		&i.Description,
-		&i.ProjectID,
-		&i.StartedAt,
-		&i.StoppedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) StopActiveEntry(ctx context.Context, arg StopActiveEntryParams) error {
+	_, err := q.db.ExecContext(ctx, stopActiveEntry, arg.StoppedAt, arg.UpdatedAt, arg.ID)
+	return err
 }
