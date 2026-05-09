@@ -38,7 +38,7 @@ func Run(ctx context.Context, service tracking.Tracker, args []string, stdout io
 	case "stop":
 		return r.stop(ctx)
 	case "status":
-		return runNoArgCommand(commandArgs, stdout, stderr, "No active timer\n")
+		return r.status(ctx)
 	case "today":
 		return runNoArgCommand(commandArgs, stdout, stderr, "No entries tracked today\n")
 	case "log":

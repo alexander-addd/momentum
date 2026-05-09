@@ -132,7 +132,26 @@ func (s *Service) Stop(ctx context.Context) (Status, error) {
 }
 
 func (s *Service) Status(ctx context.Context) (Status, error) {
-	return Status{}, nil
+	activeEntry, err := s.store.GetActiveEntry(ctx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Status{Active: false}, nil
+	}
+	if err != nil {
+		return Status{}, fmt.Errorf("get active entry: %w", err)
+	}
+
+	mappedEntry, err := toEntryMapper(activeEntry)
+	if err != nil {
+		return Status{}, fmt.Errorf("map to entry: %w", err)
+	}
+
+	status := Status{
+		Entry:   mappedEntry,
+		Active:  mappedEntry.Active(),
+		Elapsed: mappedEntry.Duration(s.clock.Now()),
+	}
+
+	return status, nil
 }
 
 func (s *Service) Today(ctx context.Context) ([]Entry, error) {

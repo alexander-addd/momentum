@@ -44,6 +44,23 @@ func (r runner) stop(ctx context.Context) int {
 	return exitOK
 }
 
+func (r runner) status(ctx context.Context) int {
+	status, err := r.service.Status(ctx)
+	if err != nil {
+		return serviceError(r.stderr, "couldn't check status: %v", err)
+	}
+
+	if !status.Active {
+		fmt.Fprintln(r.stdout, "No active entry")
+		return exitOK
+	}
+
+	fmt.Fprintf(r.stdout, "Entry %q is active\n", status.Entry.Description)
+	fmt.Fprintf(r.stdout, "Time elapsed: %s\n", status.Elapsed)
+
+	return exitOK
+}
+
 func parseStart(args []string) (tracking.StartInput, error) {
 	options := tracking.StartInput{
 		Project: "",
