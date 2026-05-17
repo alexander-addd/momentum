@@ -161,7 +161,7 @@ func printEntries(w io.Writer, entries []tracking.Entry) {
 		return
 	}
 
-	tw := tabwriter.NewWriter(w, 0, 0, 4, ' ', 0)
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "ID\tSTARTED\tDURATION\tPROJECT\tDESCRIPTION")
 
 	for _, entry := range entries {
