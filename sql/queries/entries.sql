@@ -70,7 +70,7 @@ SELECT
     e.updated_at
 FROM entries e
 LEFT JOIN projects p ON p.id = e.project_id
-ORDER BY e.created_at ASC
+ORDER BY e.created_at DESC
 LIMIT sqlc.arg(limit);
 
 -- name: StopActiveEntry :execrows
