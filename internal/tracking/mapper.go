@@ -10,7 +10,7 @@ import (
 )
 
 type sqlcEntryRow interface {
-	storage.GetActiveEntryRow | storage.GetEntryByIDRow
+	storage.GetActiveEntryRow | storage.GetEntryByIDRow | storage.GetEntriesRow
 }
 
 // Add this for convenience, to avoid mapping db structs
@@ -51,4 +51,19 @@ func toEntryMapper[T sqlcEntryRow](row T) (Entry, error) {
 	}
 
 	return entry, nil
+}
+
+func toEntriesMapper(rows []storage.GetEntriesRow) ([]Entry, error) {
+	entries := make([]Entry, len(rows))
+
+	for i, row := range rows {
+		entry, err := toEntryMapper(row)
+		if err != nil {
+			return nil, fmt.Errorf("map entry: %w", err)
+		}
+
+		entries[i] = entry
+	}
+
+	return entries, nil
 }

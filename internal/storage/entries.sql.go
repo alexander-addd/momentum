@@ -119,6 +119,65 @@ func (q *Queries) GetActiveEntry(ctx context.Context) (GetActiveEntryRow, error)
 	return i, err
 }
 
+const getEntries = `-- name: GetEntries :many
+SELECT
+    e.id,
+    e.description,
+    e.project_id,
+    p.name AS project_name,
+    e.started_at,
+    e.stopped_at,
+    e.created_at,
+    e.updated_at
+FROM entries e
+LEFT JOIN projects p ON p.id = e.project_id
+ORDER BY e.created_at ASC
+LIMIT ?1
+`
+
+type GetEntriesRow struct {
+	ID          string
+	Description string
+	ProjectID   sql.NullString
+	ProjectName sql.NullString
+	StartedAt   int64
+	StoppedAt   sql.NullInt64
+	CreatedAt   int64
+	UpdatedAt   int64
+}
+
+func (q *Queries) GetEntries(ctx context.Context, limit int64) ([]GetEntriesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEntries, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetEntriesRow{}
+	for rows.Next() {
+		var i GetEntriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Description,
+			&i.ProjectID,
+			&i.ProjectName,
+			&i.StartedAt,
+			&i.StoppedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEntryByID = `-- name: GetEntryByID :one
 SELECT
     e.id,

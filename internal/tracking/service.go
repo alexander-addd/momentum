@@ -22,13 +22,17 @@ type Tracker interface {
 	Stop(context.Context) (Status, error)
 	Status(context.Context) (Status, error)
 	Today(context.Context) ([]Entry, error)
-	Log(context.Context, int) ([]Entry, error)
+	Log(context.Context, LogInput) ([]Entry, error)
 }
 
 type StartInput struct {
 	Description string
 	Project     string
 	Tags        []string // ignoring for now
+}
+
+type LogInput struct {
+	Limit int
 }
 
 type Status struct {
@@ -87,6 +91,20 @@ func (s *Service) Start(ctx context.Context, input StartInput) (Entry, error) {
 	}
 
 	return mappedEntry, nil
+}
+
+func (s *Service) Log(ctx context.Context, input LogInput) ([]Entry, error) {
+	entries, err := s.store.GetEntries(ctx, int64(input.Limit))
+	if err != nil {
+		return nil, fmt.Errorf("get entries: %w", err)
+	}
+
+	mappedEntries, err := toEntriesMapper(entries)
+	if err != nil {
+		return nil, fmt.Errorf("map to entries: %w", err)
+	}
+
+	return mappedEntries, nil
 }
 
 func (s *Service) Stop(ctx context.Context) (Status, error) {
@@ -155,10 +173,6 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 }
 
 func (s *Service) Today(ctx context.Context) ([]Entry, error) {
-	return []Entry{}, nil
-}
-
-func (s *Service) Log(ctx context.Context, limit int) ([]Entry, error) {
 	return []Entry{}, nil
 }
 

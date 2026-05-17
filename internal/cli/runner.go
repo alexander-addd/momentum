@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/alexander-addd/momentum/internal/tracking"
@@ -15,7 +16,9 @@ type runner struct {
 	stderr  io.Writer
 }
 
-func (r runner) runStart(ctx context.Context, args []string) int {
+const defaultLogLimit = 10
+
+func (r runner) start(ctx context.Context, args []string) int {
 	input, err := parseStart(args)
 	if err != nil {
 		return usageError(r.stderr, err.Error())
@@ -29,6 +32,17 @@ func (r runner) runStart(ctx context.Context, args []string) int {
 	fmt.Fprintln(r.stdout, entry)
 
 	fmt.Fprintf(r.stdout, "New entry started: %s, project: %s\n", entry.Description, getTitleIfEmpty(entry.Project))
+	return exitOK
+}
+
+func (r runner) log(ctx context.Context, args []string) int {
+	input := parseLog(args)
+
+	entries, err := r.service.Log(ctx, input)
+	if err != nil {
+		return serviceError(r.stderr, "error getting log: %v", err)
+	}
+
 	return exitOK
 }
 
@@ -99,6 +113,19 @@ func parseStart(args []string) (tracking.StartInput, error) {
 
 	options.Description = strings.Join(description, " ")
 	return options, nil
+}
+
+func parseLog(args []string) tracking.LogInput {
+	if len(args) != 1 {
+		return tracking.LogInput{Limit: defaultLogLimit}
+	}
+
+	limit, err := strconv.Atoi(args[0])
+	if err != nil {
+		return tracking.LogInput{Limit: defaultLogLimit}
+	}
+
+	return tracking.LogInput{Limit: limit}
 }
 
 func parseFlagValue(args []string, i int, flag string, seen bool) (string, bool, error) {

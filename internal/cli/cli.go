@@ -14,7 +14,7 @@ const (
 )
 
 const helpText = `Usage:
-  momentum start <description> [--project <name>] [--tag <tag>]
+  momentum start <description> [--project <name>]
   momentum stop
   momentum status
   momentum today
@@ -34,7 +34,7 @@ func Run(ctx context.Context, service tracking.Tracker, args []string, stdout io
 
 	switch command {
 	case "start":
-		return r.runStart(ctx, commandArgs)
+		return r.start(ctx, commandArgs)
 	case "stop":
 		return r.stop(ctx)
 	case "status":
