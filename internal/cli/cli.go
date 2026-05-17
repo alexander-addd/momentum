@@ -18,7 +18,7 @@ const helpText = `Usage:
   momentum stop
   momentum status
   momentum today
-  momentum log
+  momentum log [limit]
   momentum help
 `
 
@@ -36,13 +36,19 @@ func Run(ctx context.Context, service tracking.Tracker, args []string, stdout io
 	case "start":
 		return r.start(ctx, commandArgs)
 	case "stop":
+		if len(commandArgs) > 0 {
+			return usageError(stderr, "command does not accept arguments")
+		}
 		return r.stop(ctx)
 	case "status":
+		if len(commandArgs) > 0 {
+			return usageError(stderr, "command does not accept arguments")
+		}
 		return r.status(ctx)
 	case "today":
 		return runNoArgCommand(commandArgs, stdout, stderr, "No entries tracked today\n")
 	case "log":
-		return runNoArgCommand(commandArgs, stdout, stderr, "No recent entries\n")
+		return r.log(ctx, commandArgs)
 	case "help":
 		if len(commandArgs) > 0 {
 			return usageError(stderr, "help does not accept arguments")
